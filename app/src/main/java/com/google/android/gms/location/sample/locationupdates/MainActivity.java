@@ -18,8 +18,11 @@ package com.google.android.gms.location.sample.locationupdates;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
@@ -55,6 +58,7 @@ import com.google.android.gms.tasks.Task;
 
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 
@@ -251,6 +255,53 @@ public class MainActivity extends AppCompatActivity {
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
+    //Start change 1/2: Added by Aniruddha on 25-Nov-2019
+    //Refer:
+    //https://stackoverflow.com/questions/6880232/disable-check-for-mock-location-prevent-gps-spoofing
+    public static boolean isMockSettingsON(Context context) {
+        // returns true if mock location enabled, false if not enabled.
+        if (Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ALLOW_MOCK_LOCATION).equals("0"))
+            return false;
+        else
+            return true;
+    }
+
+    public static boolean areThereMockPermissionApps(Context context) {
+        int count = 0;
+
+        PackageManager pm = context.getPackageManager();
+        List<ApplicationInfo> packages =
+                pm.getInstalledApplications(PackageManager.GET_META_DATA);
+
+        for (ApplicationInfo applicationInfo : packages) {
+            try {
+                PackageInfo packageInfo = pm.getPackageInfo(applicationInfo.packageName,
+                        PackageManager.GET_PERMISSIONS);
+
+                // Get Permissions
+                String[] requestedPermissions = packageInfo.requestedPermissions;
+
+                if (requestedPermissions != null) {
+                    for (int i = 0; i < requestedPermissions.length; i++) {
+                        if (requestedPermissions[i]
+                                .equals("android.permission.ACCESS_MOCK_LOCATION")
+                                && !applicationInfo.packageName.equals(context.getPackageName())) {
+                            count++;
+                        }
+                    }
+                }
+            } catch (PackageManager.NameNotFoundException e) {
+                Log.e("Got exception " , e.getMessage());
+            }
+        }
+
+        if (count > 0)
+            return true;
+        return false;
+    }
+
+    //end change 1/2: Added by Aniruddha on 25-Nov-2019
     /**
      * Creates a callback for receiving location events.
      */
@@ -258,26 +309,32 @@ public class MainActivity extends AppCompatActivity {
         mLocationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
-                String errorMessage;
+
+
                 super.onLocationResult(locationResult);
 
+                // start change 1/2: Added by Aniruddha on 25-Nov-2019
+                String errorMessage;
+                //MOCK_LOCATION settings from environment
+                boolean mock_status = isMockSettingsON(MainActivity.this);
+                //Presence of other MOCK_LOCATION Apps
+                boolean other_mock_apps = areThereMockPermissionApps(MainActivity.this);
 
-
-
-                mCurrentLocation = locationResult.getLastLocation();
-                //**************************************************************
-                //start change 1/1: Added by Aniruddha on 22-Nov-2019
-                //Code for Fake GPS checking should come here
-                if (mCurrentLocation.isFromMockProvider()){
-                    errorMessage = "Location Spoofed!" ;
-                }
-                else{
-                    errorMessage = "Location Real!" ;
+                if (mock_status )
+                    errorMessage = "Spoofed: MOCK SETTINGS ON!" ;
+                else if (other_mock_apps)
+                    errorMessage = "Spoofed: FOUND MOCK APPS!" ;
+                    else{
+                    //Assuming API >=21
+                    mCurrentLocation = locationResult.getLastLocation();
+                    if (mCurrentLocation.isFromMockProvider() )
+                        errorMessage = "Spoofed: MOCK GPS SOURCE!" ;
+                    else
+                        errorMessage = "Location Real!" ;
                 }
                 Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
-                //Further code should proceed only when the Fake GPS is not there
-                //end change 1/1: Added by Aniruddha on 22-Nov-2019
-                //**************************************************************
+                //end change 1/2: Added by Aniruddha on 25-Nov-2019
+
                 mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
                 updateLocationUI();
             }
