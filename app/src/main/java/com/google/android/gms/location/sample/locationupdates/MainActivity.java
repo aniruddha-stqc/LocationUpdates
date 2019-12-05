@@ -260,6 +260,33 @@ public class MainActivity extends AppCompatActivity {
     //Refer:
     //https://stackoverflow.com/questions/6880232/disable-check-for-mock-location-prevent-gps-spoofing
     public static boolean isMockSettingsON(Context context) {
+
+        /*
+        StringBuilder sb = new StringBuilder("SETTINGS_SECURE\n");
+
+        sb.append(Settings.Secure.ADB_ENABLED.toUpperCase())
+                .append("=")
+                .append(Settings.Secure.getString(context.getContentResolver(),
+                        Settings.Secure.ADB_ENABLED))
+                .append("\n")
+
+                .append(Settings.Secure.ALLOWED_GEOLOCATION_ORIGINS.toUpperCase())
+                .append("=")
+                .append(Settings.Secure.getString(context.getContentResolver(),
+                        Settings.Secure.ALLOWED_GEOLOCATION_ORIGINS))
+                .append("\n")
+
+                .append(Settings.Secure.ALLOW_MOCK_LOCATION.toUpperCase())
+                .append("=")
+                .append(Settings.Secure.getString(context.getContentResolver(),
+                        Settings.Secure.ALLOW_MOCK_LOCATION))
+                .append("\n")
+
+                .append(Settings.Secure.ANDROID_ID.toUpperCase())
+                .append("=")
+                .append(Settings.Secure.getString(context.getContentResolver(),
+                        Settings.Secure.ANDROID_ID));
+        */
         // returns true if mock location enabled, false if not enabled.
         if (Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ALLOW_MOCK_LOCATION).equals("0"))
             return false;
@@ -315,26 +342,12 @@ public class MainActivity extends AppCompatActivity {
 
                 // start change 1/2: Added by Aniruddha on 25-Nov-2019
 
-                /*
-                LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-                try {
-                    Log.d(TAG ,"Removing Test providers");
-                    lm.removeTestProvider(LocationManager.GPS_PROVIDER);
-                } catch (IllegalArgumentException error) {
-                    Log.d(TAG,"Got exception in removing test  provider");
-                }
-
-                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, locationListener);
-                */
-
                 boolean isMock;
 
                 //Presence of other MOCK_LOCATION Apps
                 isMock = areThereMockPermissionApps(MainActivity.this);
                 //This settings is too stringent hence made false for the moment
                 isMock = false;
-
                 mCurrentLocation = locationResult.getLastLocation();
 
                 //Check if API >= 18
